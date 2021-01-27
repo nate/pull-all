@@ -10,13 +10,13 @@
 (defn success [msg]
   (string (ansi :success) msg (ansi :reset)))
 
-(defn error [msg]
+(defn err [msg]
   (string (ansi :error) msg (ansi :reset)))
 
 (defn color-result [res msg]
   (if (= res :success)
     (success msg)
-    (error msg)))
+    (err msg)))
 
 (defn indent
   [text level]
@@ -33,9 +33,9 @@
      (os/stat path :mode)))
 
 (defn dirs [path]
-  (filter
-   is-dir?
-   (os/dir path)))
+  (->> (os/dir path)
+    (map |(p/join path $0))
+    (filter |(is-dir? $0))))
 
 (defn hidden? [path]
   (string/has-prefix?
@@ -51,15 +51,12 @@
 (defn git-project? [path]
   (is-dir? (p/join path ".git")))
 
-(defn- search-directories* [path depth]
+(defn- search-directories [path depth]
   (if (> depth 0)
-    (array/push (mapcat |(search-directories* $0 (- depth 1))
+    (array/push (mapcat |(search-directories $0 (- depth 1))
                         (visible-dirs path))
                 path)
     @[path]))
-
-(defn search-directories [path depth]
-  (search-directories* path depth))
 
 (defn git-projects [path depth]
   (filter git-project? (search-directories path depth)))
